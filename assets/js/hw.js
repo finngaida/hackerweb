@@ -82,6 +82,49 @@
 	var $homeScroll = d.querySelector('#view-home .scroll'),
 		$homeScrollSection = $homeScroll.querySelector('section'),
 		loadingNews = false;
+		
+		
+		var notify = function () {
+    // Check for notification compatibility.
+    if (!'Notification' in window) {
+        // If the browser version is unsupported, remain silent.
+        return;
+    }
+    // Log current permission level
+    console.log(Notification.permission);
+    // If the user has not been asked to grant or deny notifications
+    // from this domain...
+    if (Notification.permission === 'default') {
+        Notification.requestPermission(function () {
+            // ...callback this function once a permission level has been set.
+            notify();
+        });
+    }
+    // If the user has granted permission for this domain to send notifications...
+    else if (Notification.permission === 'granted') {
+        var n = new Notification(
+                    'New article on HN',
+                    {
+                      'body': 'Title of the article here',
+                      // ...prevent duplicate notifications
+                      'tag' : 'some unique string'
+                    }
+                );
+        // Remove the notification from Notification Center when clicked.
+        n.onclick = function () {
+            this.close();
+        };
+        // Callback function when the notification is closed.
+        n.onclose = function () {
+            console.log('Notification closed');
+        };
+    }
+    // If the user does not want notifications to come from this domain...
+    else if (Notification.permission === 'denied') {
+        // ...remain silent.
+        return;
+    }
+};
 
 	hw.news = {
 		options: {
@@ -160,7 +203,11 @@
 					changed = true;
 				}
 			});
-			if (!changed) return;
+			if (!changed) {
+				return;
+			} else {
+				notify();
+			}
 			// Update the news cache
 			amplify.store(newsCache, news);
 			// Update the story in the news list
@@ -177,6 +224,7 @@
 			var cached = amplify.store('hacker-news-cached');
 			var tmpl1 = tmpl('stories-load');
 			var loadNews = function(_data){
+				notify();
 				var data = _data.slice();
 				var html = '<ul class="tableview tableview-links" id="hwlist">'
 					+ hw.news.markupStories(data)
